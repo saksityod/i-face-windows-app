@@ -111,7 +111,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     String db_driver = "org.gjt.mm.mysql.Driver";
     String db_url = "jdbc:mysql://localhost/iface_tech_db";
     String db_user = "root";
-    String db_password = "root";//wvga:gm8
+    String db_password = "wvga:gm8";//wvga:gm8
     public static String media_url = "";
     public IFaceTech() {
         super("IFace Realtime Demo");
@@ -169,7 +169,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 				FaceBlacklist faceBlacklist = new FaceBlacklist(); 
 				faceBlacklist.setPictureId(rs.getInt("PICTURE_ID"));
 				faceBlacklist.setProfileId(rs.getInt("PROFILE_ID"));
-				String path = rs.getString("PATH");
+				String path = rs.getString("PATH")+"\\";
 				String fileName = rs.getString("FILE_NAME");
 				
 				Face[] faces = faceHandler.detectFaces(path+fileName, 40, 200, 1);
@@ -241,7 +241,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 				faceMatching.setFirstName(rs.getString("FIRST_NAME"));
 				faceMatching.setLastName(rs.getString("LAST_NAME"));
 				
-				faceMatching.setPathTarget(rs.getString("PATH"));
+				faceMatching.setPathTarget(rs.getString("PATH")+"\\");
 				faceMatching.setFileTarget(rs.getString("FILE_NAME"));
 			
 				
@@ -334,7 +334,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 						model.setValueAt(faceMatching.getTitle()+" "+faceMatching.getFirstName()+" "+faceMatching.getLastName(),row, 0);
 						model.setValueAt(faceMatching.getPercent(), row, 1);
 						model.setValueAt(faceMatching.getTimeMatchingStr(), row, 2);
-						model.setValueAt(faceMatching.getPathSource()+faceMatching.getFileSource(), row, 3);
+						model.setValueAt(faceMatching.getPathSource()+"\\"+faceMatching.getFileSource(), row, 3);
 						model.setValueAt(faceMatching.getPathTarget()+faceMatching.getFileTarget(), row, 4);
 						row++;
 					}
@@ -538,7 +538,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 						model.setValueAt(faceMatching.getTitle()+" "+faceMatching.getFirstName()+" "+faceMatching.getLastName(),row, 0);
 						model.setValueAt(faceMatching.getPercent(), row, 1);
 						model.setValueAt(faceMatching.getTimeMatchingStr(), row, 2);
-						model.setValueAt(faceMatching.getPathSource()+faceMatching.getFileSource(), row, 3);
+						model.setValueAt(faceMatching.getPathSource()+"\\"+faceMatching.getFileSource(), row, 3);
 						model.setValueAt(faceMatching.getPathTarget()+faceMatching.getFileTarget(), row, 4);
 						row++;
 					}
@@ -800,7 +800,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                                 	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm") ;
                                 	String fileName = dateFormat.format(date)+".jpg";
                                 	byte[] cropped = face.getCropImage(FaceCropMethod.TOKEN_FRONTAL, ImageSaveType.JPG);
-                                    Files.write(new File(pathCropped+fileName).toPath(), cropped);
+                                    Files.write(new File(pathCropped+"\\"+fileName).toPath(), cropped);
                             			
                             			// save to Table
                             			FaceMatching faceMatching = new FaceMatching();
