@@ -8,11 +8,16 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -61,10 +66,25 @@ import com.innovatrics.iface.enums.Parameter;
 import com.innovatrics.iface.enums.TrackedObjectFaceType;
 import com.innovatrics.iface.enums.TrackedObjectState;
 
+//import java.io.File;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.CoreProtocolPNames;
+import org.apache.http.util.EntityUtils;
+
 import sun.audio.*;
 import th.co.imake.rtsp.model.FaceBlacklist;
 import th.co.imake.rtsp.model.FaceMatching;
 import uk.co.caprica.vlcj.discovery.NativeDiscovery;
+import th.co.imake.rtsp.SystemConfig;
 
 public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCapture.IPCameraCaptureEvents
 {
@@ -106,12 +126,13 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     static Map<String, String> paramconfig = new HashMap<String, String>();
     
     
-    
+
     String pathCropped ="";
     String db_driver = "org.gjt.mm.mysql.Driver";
-    String db_url = "jdbc:mysql://localhost/iface_tech_db";
-    String db_user = "root";
-    String db_password = "wvga:gm8";//wvga:gm8
+    String db_url = "";
+    String db_user = "";
+    String db_password = ""; 
+    String client_name = ""; 
     public static String media_url = "";
     public IFaceTech() {
         super("IFace Realtime Demo");
@@ -119,13 +140,46 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     
     public void start() {
     	/* */
-    	
+
     System.out.println("start>>>>");
     
+  
+    
+	//delete directory ./matching_picture
+    try {
+		deleteDirectoryRecursionJava(new File(System.getProperty("user.dir")+"\\matching_picture"));
+	} catch (IOException e) {
+		// TODO Auto-generated catch block // e.printStackTrace();
+	}
+    
+	//delete directory ./profile_picture
+    try {
+  		deleteDirectoryRecursionJava(new File(System.getProperty("user.dir")+"\\profile_picture"));
+  	} catch (IOException e) {
+  		// TODO Auto-generated catch block // e.printStackTrace();
+  	}
+	
+    // Set parameter from file config.ini
+    SystemConfig systemConfig = new SystemConfig();
+	systemConfig.setConfig();
+	System.out.println("--------- system config ---------");
+	System.out.println("db_url: "+SystemConfig.db_url);
+	System.out.println("db_user: "+SystemConfig.db_user);
+	System.out.println("db_password: "+SystemConfig.db_password);
+	System.out.println("camera_ip: "+SystemConfig.camera_ip); 
+	System.out.println("client_name: "+SystemConfig.client_name);
+	System.out.println("----------------------------------");
+	
+	db_url  = SystemConfig.db_url;
+	db_user = SystemConfig.db_user;
+	db_password = SystemConfig.db_password;
+	media_url = SystemConfig.camera_ip;
+	client_name = SystemConfig.client_name;
+	
     paramConfigs();
 	pathCropped=(String) getParam("2");
-	media_url=(String) getParam("4");
-	
+//	media_url=(String) getParam("4");
+
 	
 	
         if( initIFace() == false ) {
@@ -164,15 +218,32 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 		      
 		      st = conn.createStatement();
 		      rs = st.executeQuery(query);
+
+			// new directory with files
+			new File(System.getProperty("user.dir")+"\\profile_picture").mkdirs();
+				
 			while((rs!=null) && (rs.next()))
-				{			
+			{			
 				FaceBlacklist faceBlacklist = new FaceBlacklist(); 
 				faceBlacklist.setPictureId(rs.getInt("PICTURE_ID"));
 				faceBlacklist.setProfileId(rs.getInt("PROFILE_ID"));
-				String path = rs.getString("PATH")+"\\";
+				String path = rs.getString("PATH")+"/";
 				String fileName = rs.getString("FILE_NAME");
+
+				// download image from serve
+				URL url = new URL(path+fileName);
+				InputStream in = new BufferedInputStream(url.openStream());
+				OutputStream out = new BufferedOutputStream(new FileOutputStream(System.getProperty("user.dir")+"\\profile_picture\\"+fileName));
+
+				for ( int i; (i = in.read()) != -1; ) {
+				    out.write(i);
+				}
+				in.close();
+				out.close();
 				
-				Face[] faces = faceHandler.detectFaces(path+fileName, 40, 200, 1);
+				System.out.println("download image: "+path+fileName);
+
+				Face[] faces = faceHandler.detectFaces(System.getProperty("user.dir")+"\\profile_picture\\"+fileName, 40, 200, 1);
 				if(faces!=null && faces.length>0){
 					faceBlacklist.setTempate(faces[0].createTemplate());
 				}
@@ -210,6 +281,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     	
     	
     }
+	
     private  List<FaceMatching> fetchFaceMatching(){
     	Connection conn  = null;
     	Statement st =null;
@@ -241,7 +313,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 				faceMatching.setFirstName(rs.getString("FIRST_NAME"));
 				faceMatching.setLastName(rs.getString("LAST_NAME"));
 				
-				faceMatching.setPathTarget(rs.getString("PATH")+"\\");
+				faceMatching.setPathTarget(rs.getString("PATH"));
 				faceMatching.setFileTarget(rs.getString("FILE_NAME"));
 			
 				
@@ -285,8 +357,8 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     		 Class.forName(db_driver);
 		     conn = DriverManager.getConnection(db_url, db_user, db_password);
 
-		      String query = "INSERT INTO face_matching (matching_id,picture_id,time_matching,path_source,file_source,percent,detail) "
-		      		+ "values (?,?,?,?,?,?,?) ";
+		      String query = "INSERT INTO face_matching (matching_id,picture_id,time_matching,path_source,file_source,percent,detail,client_name) "
+		      		+ "values (?,?,?,?,?,?,?,?) ";
 		      preparedStatement  = conn.prepareStatement(query);
 		      preparedStatement.setString(1, faceMatching.getMatchingId());
 		      preparedStatement.setInt(2, faceMatching.getPictureId());
@@ -295,6 +367,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 		      preparedStatement.setString(5, faceMatching.getFileSource());
 		      preparedStatement.setString(6, faceMatching.getPercent());
 		      preparedStatement.setString(7, faceMatching.getDetail());
+		      preparedStatement.setString(8, faceMatching.getClientName());
 		      // execute insert SQL stetement
 		      preparedStatement .executeUpdate();
 		     
@@ -334,8 +407,8 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 						model.setValueAt(faceMatching.getTitle()+" "+faceMatching.getFirstName()+" "+faceMatching.getLastName(),row, 0);
 						model.setValueAt(faceMatching.getPercent(), row, 1);
 						model.setValueAt(faceMatching.getTimeMatchingStr(), row, 2);
-						model.setValueAt(faceMatching.getPathSource()+"\\"+faceMatching.getFileSource(), row, 3);
-						model.setValueAt(faceMatching.getPathTarget()+faceMatching.getFileTarget(), row, 4);
+						model.setValueAt(faceMatching.getPathSource()+"//"+faceMatching.getFileSource(), row, 3);
+						model.setValueAt(faceMatching.getPathTarget()+"//"+faceMatching.getFileTarget(), row, 4);
 						row++;
 					}
 					table.setRowSelectionInterval(0, 0);
@@ -349,7 +422,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 					
 					String target = model.getValueAt(indexMathed, 4).toString();
 					
-					label.setText(name);
+					label.setText(name); 
 					lblNewLabel_3.setText(persent);
 					//lblNewLabel_4.setText(persent);
 					lblNewLabel_5.setText(datetime);
@@ -362,8 +435,47 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 				}
     }
    
-    
-    
+// function upload image to server
+	private String uploadImageFn(String fileName) throws ClientProtocolException, IOException{ // marker daris
+    	HttpClient httpclient = new DefaultHttpClient();
+        httpclient.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
+
+        HttpPost httppost = new HttpPost("http://169.254.122.251:8080/IFACETech/admin/upload_match_jsp.jsp");
+        File file = new File(System.getProperty("user.dir")+"\\matching_picture\\"+fileName);
+
+        MultipartEntity mpEntity = new MultipartEntity();
+        ContentBody cbFile = new FileBody(file, "image/jpeg");
+        mpEntity.addPart("file", cbFile);
+        httppost.setEntity(mpEntity);
+       
+        HttpResponse response = httpclient.execute(httppost);
+
+        HttpEntity resEntity = response.getEntity();
+
+        if (resEntity != null) {
+        //  System.out.println(EntityUtils.toString(resEntity));
+          fileName = EntityUtils.toString(resEntity);
+        }
+        //System.out.println("file name :"+fileName);
+        httpclient.getConnectionManager().shutdown();
+        return fileName.trim();
+    }
+
+
+// function delete directory
+	void deleteDirectoryRecursionJava(File file) throws IOException {
+    	  if (file.isDirectory()) {
+    	    File[] entries = file.listFiles();
+    	    if (entries != null) {
+    	      for (File entry : entries) {
+    	        deleteDirectoryRecursionJava(entry);
+    	      }
+    	    }
+    	  }
+    	  if (!file.delete()) {
+    	    throw new IOException("Failed to delete " + file);
+    	  }
+    }
 
     
     private  void paramConfigs(){
@@ -538,8 +650,8 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 						model.setValueAt(faceMatching.getTitle()+" "+faceMatching.getFirstName()+" "+faceMatching.getLastName(),row, 0);
 						model.setValueAt(faceMatching.getPercent(), row, 1);
 						model.setValueAt(faceMatching.getTimeMatchingStr(), row, 2);
-						model.setValueAt(faceMatching.getPathSource()+"\\"+faceMatching.getFileSource(), row, 3);
-						model.setValueAt(faceMatching.getPathTarget()+faceMatching.getFileTarget(), row, 4);
+						model.setValueAt(faceMatching.getPathSource()+"//"+faceMatching.getFileSource(), row, 3);
+						model.setValueAt(faceMatching.getPathTarget()+"//"+faceMatching.getFileTarget(), row, 4);
 						row++;
 					}
 				}
@@ -800,8 +912,14 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                                 	SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm") ;
                                 	String fileName = dateFormat.format(date)+".jpg";
                                 	byte[] cropped = face.getCropImage(FaceCropMethod.TOKEN_FRONTAL, ImageSaveType.JPG);
-                                    Files.write(new File(pathCropped+"\\"+fileName).toPath(), cropped);
-                            			
+                                	
+                                	// new directory matching_picture
+                                	new File(System.getProperty("user.dir")+"\\matching_picture").mkdirs();
+                                	
+									Files.write(new File(System.getProperty("user.dir")+"\\matching_picture\\"+fileName).toPath(), cropped); // marker daris
+
+									fileName = uploadImageFn(fileName);
+									System.out.println("file name:"+fileName);
                             			// save to Table
                             			FaceMatching faceMatching = new FaceMatching();
                             			faceMatching.setMatchingId(genToken());
@@ -810,6 +928,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                             			faceMatching.setFileSource(fileName);
                             			faceMatching.setPercent(String.format("%.2f", matchingConfidence)+"%");
                             			faceMatching.setDetail("Detail");
+                            			faceMatching.setClientName(client_name);
                             			saveToTable(faceMatching);
                             			// refreshTable();
                             			refreshTable();
@@ -884,7 +1003,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
         BufferedImage img = null;
         Image dimg = null;
      try {
-         img = ImageIO.read(new File(filePath));
+         img = ImageIO.read(new URL(filePath));     // img = ImageIO.read(new File(filePath));
          dimg = img.getScaledInstance(file_width, file_height,
               Image.SCALE_SMOOTH);
      } catch (IOException e) {

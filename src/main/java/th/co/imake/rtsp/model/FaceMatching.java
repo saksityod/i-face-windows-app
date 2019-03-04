@@ -14,7 +14,7 @@ public class FaceMatching {
 	private String title;
 	private String firstName;
 	private String lastName;
-	
+	private String clientName;
 	private String pathTarget;
 	private String fileTarget;
 
@@ -95,6 +95,12 @@ public class FaceMatching {
 	}
 	public void setFileTarget(String fileTarget) {
 		this.fileTarget = fileTarget;
+	}
+	public String getClientName() {
+		return clientName;
+	}
+	public void setClientName(String fileTarget) {
+		this.clientName = fileTarget;
 	}
 	
 	
