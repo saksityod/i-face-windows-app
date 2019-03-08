@@ -895,6 +895,11 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                     		if(faceBlacklist.getTempate()!=null){
                     		try {
                     			 float matchingConfidence = faceHandler.matchTemplate(faceBlacklist.getTempate(), template1);
+                    			 
+                    			 if(matchingConfidence>100){
+                    				 matchingConfidence = 100;
+                    			 }
+                    			 
                     			 System.out.println("+++++++++++++ prfile id["+faceBlacklist.getProfileId()+"] picture id["+faceBlacklist.getPictureId()+"] "+String.format("Matching confidence: %.2f", matchingConfidence));
                             	if(matchingConfidence > Integer.parseInt(persentConfig) ){
                             		
