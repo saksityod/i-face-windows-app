@@ -12,6 +12,7 @@ public class SystemConfig {
 	public static String db_password = "";  
 	public static String camera_ip = ""; 
 	public static String client_name = ""; 
+	public static String ip_tomcat = "";
  
 	public void setConfig() {
         try {
@@ -42,6 +43,8 @@ public class SystemConfig {
                 	camera_ip = detailTxT;
                 }else if(headTxT.equals("client_name")){
                 	client_name = detailTxT;
+                }else if(headTxT.equals("ip_tomcat")){
+                	ip_tomcat = detailTxT;
                 }
                 
             }

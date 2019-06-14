@@ -133,6 +133,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     String db_user = "";
     String db_password = ""; 
     String client_name = ""; 
+    String ip_tomcat = ""; 
     public static String media_url = "";
     public IFaceTech() {
         super("IFace Realtime Demo");
@@ -168,6 +169,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 	System.out.println("db_password: "+SystemConfig.db_password);
 	System.out.println("camera_ip: "+SystemConfig.camera_ip); 
 	System.out.println("client_name: "+SystemConfig.client_name);
+	System.out.println("ip_tomcat: "+SystemConfig.ip_tomcat);
 	System.out.println("----------------------------------");
 	
 	db_url  = SystemConfig.db_url;
@@ -175,6 +177,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 	db_password = SystemConfig.db_password;
 	media_url = SystemConfig.camera_ip;
 	client_name = SystemConfig.client_name;
+	ip_tomcat = SystemConfig.ip_tomcat;
 	
     paramConfigs();
 	pathCropped=(String) getParam("2");
@@ -440,7 +443,8 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     	HttpClient httpclient = new DefaultHttpClient();
         httpclient.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
 
-        HttpPost httppost = new HttpPost("http://169.254.122.251:8080/IFACETech/admin/upload_match_jsp.jsp");
+        
+        HttpPost httppost = new HttpPost(ip_tomcat+"/IFACETech/admin/upload_match_jsp.jsp");
         File file = new File(System.getProperty("user.dir")+"\\matching_picture\\"+fileName);
 
         MultipartEntity mpEntity = new MultipartEntity();
