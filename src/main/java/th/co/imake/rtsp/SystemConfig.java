@@ -13,6 +13,13 @@ public class SystemConfig {
 	public static String camera_ip = ""; 
 	public static String client_name = ""; 
 	public static String ip_tomcat = "";
+	public static String net_control_ip = "";
+	public static String net_control_password = "";
+	public static String lpr_db_url= "";
+	public static String lpr_db_user  = "";
+	public static String lpr_db_password  = "";
+	public static int delay  = 10;
+	public static String gate_name  = "";
  
 	public void setConfig() {
         try {
@@ -45,12 +52,22 @@ public class SystemConfig {
                 	client_name = detailTxT;
                 }else if(headTxT.equals("ip_tomcat")){
                 	ip_tomcat = detailTxT;
+                }else if(headTxT.equals("net_control_ip")){
+                	net_control_ip = detailTxT;
+                }else if(headTxT.equals("net_control_password")){
+                	net_control_password = detailTxT;
+                }else if(headTxT.equals("lpr_db_url")){
+                	lpr_db_url = detailTxT;
+                }else if(headTxT.equals("lpr_db_user")){
+                	lpr_db_user = detailTxT;
+                }else if(headTxT.equals("lpr_db_password")){
+                	lpr_db_password = detailTxT;
+                }else if(headTxT.equals("delay")){
+                	delay = Integer.parseInt(detailTxT) ;
+                }else if(headTxT.equals("gate_name")){
+                	gate_name = detailTxT;
                 }
-                
             }
-//            System.out.println("1 -> "+db_url);
-//            System.out.println("2 -> "+db_user);
-//            System.out.println("3 -> "+db_password);
             
             reader.close();
         } catch (IOException e) {
