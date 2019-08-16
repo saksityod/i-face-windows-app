@@ -16,8 +16,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
 import java.net.URL;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -49,6 +49,20 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 
+//import java.io.File;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ContentBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.CoreProtocolPNames;
+import org.apache.http.util.EntityUtils;
+
 import com.innovatrics.commons.geom.Point;
 import com.innovatrics.commons.geom.PointF;
 import com.innovatrics.commons.geom.Rectangle;
@@ -66,25 +80,11 @@ import com.innovatrics.iface.enums.Parameter;
 import com.innovatrics.iface.enums.TrackedObjectFaceType;
 import com.innovatrics.iface.enums.TrackedObjectState;
 
-//import java.io.File;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpVersion;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.ContentBody;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.util.EntityUtils;
-
-import sun.audio.*;
+import sun.audio.AudioPlayer;
+import sun.audio.AudioStream;
 import th.co.imake.rtsp.model.FaceBlacklist;
 import th.co.imake.rtsp.model.FaceMatching;
 import uk.co.caprica.vlcj.discovery.NativeDiscovery;
-import th.co.imake.rtsp.SystemConfig;
 
 public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCapture.IPCameraCaptureEvents
 {
@@ -134,6 +134,14 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
     String db_password = ""; 
     String client_name = ""; 
     String ip_tomcat = ""; 
+    String net_control_ip = "";
+    String net_control_password = "";
+    String lpr_db_url = ""; 
+    String lpr_db_user  = "";
+    String lpr_db_password  = "";
+    int delay = 0;
+    String gate_name  = "";
+    
     public static String media_url = "";
     public IFaceTech() {
         super("IFace Realtime Demo");
@@ -170,6 +178,17 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 	System.out.println("camera_ip: "+SystemConfig.camera_ip); 
 	System.out.println("client_name: "+SystemConfig.client_name);
 	System.out.println("ip_tomcat: "+SystemConfig.ip_tomcat);
+	
+	System.out.println("net_control_ip: "+SystemConfig.net_control_ip);
+	System.out.println("net_control_password: "+SystemConfig.net_control_password);
+	
+	System.out.println("lpr_db_url: "+SystemConfig.lpr_db_url);
+	System.out.println("lpr_db_user : "+SystemConfig.lpr_db_user );
+	System.out.println("lpr_db_password : "+SystemConfig.lpr_db_password );
+	
+	System.out.println("delay : "+SystemConfig.delay );
+	System.out.println("gate_name : "+SystemConfig.gate_name );
+	
 	System.out.println("----------------------------------");
 	
 	db_url  = SystemConfig.db_url;
@@ -178,6 +197,13 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 	media_url = SystemConfig.camera_ip;
 	client_name = SystemConfig.client_name;
 	ip_tomcat = SystemConfig.ip_tomcat;
+	net_control_ip = SystemConfig.net_control_ip;
+	net_control_password = SystemConfig.net_control_password;
+	lpr_db_url = SystemConfig.lpr_db_url;
+	lpr_db_user = SystemConfig.lpr_db_user;
+	lpr_db_password = SystemConfig.lpr_db_password;
+	delay = SystemConfig.delay;
+	gate_name = SystemConfig.gate_name;
 	
     paramConfigs();
 	pathCropped=(String) getParam("2");
@@ -813,7 +839,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
         }
     }
     
-    public void draw(Graphics g) 
+    public void draw(Graphics g)
     {
         final Graphics2D g2d = (Graphics2D) g;
         //System.out.println(model.getImage());
@@ -906,7 +932,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                     			 
                     			 System.out.println("+++++++++++++ prfile id["+faceBlacklist.getProfileId()+"] picture id["+faceBlacklist.getPictureId()+"] "+String.format("Matching confidence: %.2f", matchingConfidence));
                             	if(matchingConfidence > Integer.parseInt(persentConfig) ){
-                            		
+                    
                             		// open the sound file as a Java input stream
                             	    String gongFile = "lib/Warning.wav";
                             	    InputStream in = new FileInputStream(gongFile);
@@ -939,8 +965,45 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                             			faceMatching.setDetail("Detail");
                             			faceMatching.setClientName(client_name);
                             			saveToTable(faceMatching);
-                            			// refreshTable();
                             			refreshTable();
+                            			
+                                  		// daris
+                        			Connection conn  = null;
+                        	    	Statement st =null;
+                        	    	ResultSet rs = null;
+                        			
+                  		      	try {
+									   conn = DriverManager.getConnection(lpr_db_url, lpr_db_user, lpr_db_password);
+									   String query = "SELECT * FROM lprtable l "
+											   +"WHERE l.LogDate BETWEEN (SYSDATE() - INTERVAL "+delay+" SECOND) AND SYSDATE()"
+									   		   +"AND l.suspect NOT LIKE '%WATCHLIST%' AND l.suspect LIKE '%MEMBER%'"
+											   +"AND (l.lane = '"+gate_name+"'  OR '' = '"+gate_name+"')"
+									   		   +"ORDER BY l.LogDate DESC LIMIT 1";
+	                          		    st = conn.createStatement();
+	                          		    rs = st.executeQuery(query);
+	                          		    
+	                          		  if((rs!=null) && (rs.next()))
+	                              			{
+	                                		    System.out.println(rs);
+	                                      		netControl(1,1); // channel 1 open
+	                                              System.out.println("DELAY :"+delay+" SEC.");
+	                                              try {
+	                                                  for (int loop=0; loop<delay ; loop++) {
+	                                                      Thread.sleep(1000);
+	                                                      System.out.print(".");
+	                                                  }
+	                                                  System.out.println("");
+	                                              } catch (InterruptedException ie)
+	                                              {
+	                                                  Thread.currentThread().interrupt();
+	                                              }
+	                                              netControl(0,1); // channel 1 close
+	                              			}
+	                          		  
+								} catch (SQLException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
                             			break;
                             		}
                             } catch (IOException e) {
@@ -949,9 +1012,6 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                     	  }
                     	}
                     }
-                   
-                    
-                    	
                 }
             }
             
@@ -961,6 +1021,24 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
 
         drawFPS(g2d);
     }
+  
+    private void netControl(int digit,int channel) {
+    	try
+		{
+      	    		  
+      		String command = "C:\\udpcom_win\\udpcom_winxp -p 80 "+net_control_password+",s="+digit+channel+" "+net_control_ip;
+      		System.out.println("cmd :"+command);
+      		
+    		@SuppressWarnings("unused")
+    		Process process = Runtime.getRuntime().exec(command);
+		
+		} catch (IOException e)
+		{
+		    e.printStackTrace();
+		}
+        
+    }
+    
     
     private void drawCrossair(Graphics g, Color color, Point p) {
         g.setColor(color);
