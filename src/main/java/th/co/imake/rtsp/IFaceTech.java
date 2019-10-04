@@ -971,7 +971,7 @@ public class IFaceTech extends JFrame implements th.co.imake.rtsp.IPCameraCaptur
                         			Connection conn  = null;
                         	    	Statement st =null;
                         	    	ResultSet rs = null;
-                        			
+                        		// scan ป้ายทะเบียน
                   		      	try {
 									   conn = DriverManager.getConnection(lpr_db_url, lpr_db_user, lpr_db_password);
 									   String query = "SELECT * FROM lprtable l "
